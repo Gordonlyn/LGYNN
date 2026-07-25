@@ -1,8 +1,3 @@
-"""
-class
-and
-dictionary
-"""
 
 
 class Portfolio:
@@ -24,6 +19,12 @@ class Portfolio:
         if shares_to_sell <= self.shares:
             self.cash += total_revenue
             self.shares -= shares_to_sell
-            print(f"Successfully bought {shares_to_sell} shares.")
+            print(f"Successfully sold {shares_to_sell} shares.")
         else:
             print("Transaction denied: not enough stock!")
+
+    def hold(self):
+        print("You chose to hold your position today.")
+    
+    def net_worth(self, current_price):
+        return self.cash + self.shares * current_price

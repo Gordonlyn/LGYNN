@@ -12,7 +12,7 @@ holding positions using real historical data from Apple Inc. (AAPL).
 
 import yfinance as yf
 import csv
-import random
+from world_model_test import Portfolio
 
 
 def main():
@@ -25,12 +25,13 @@ def main():
         content = csv.DictReader(f)
 
         for row in content:
-            apple_data_list.append(row)
+            if row["Close"] != "":
+                apple_data_list.append(row)
 
     print("-----------Print the Stock Information------------")
     for row in apple_data_list:
         print(row)
-    print(f"The close price in {apple_data_list[0]["Date"]} is {apple_data_list[0]["Close"]}")
+    print(f"The close price in {apple_data_list[0]['Date']} is {apple_data_list[0]['Close']}")
 
 
 
@@ -41,6 +42,8 @@ def main():
     cash = initial_cash
     shares_hold = 0
     total_days = len(apple_data_list)
+
+    apple_portfolio = Portfolio(initial_cash)
 
 
     for day in range(1, total_days + 1):
@@ -60,31 +63,25 @@ def main():
 
         if choice == "1":
             shares_to_buy = int(input("How many shares of Apple Stock do you want to buy? "))
-            total_cost = shares_to_buy * stock_price
-
-            if total_cost <= cash:
-                cash -= total_cost
-                shares_hold += shares_to_buy
-                print(f"Successfully bought {shares_to_buy} shares of Apple Stock.")
-            else:
-                print("Transaction denied: You don't have enough cash!")
-
+            apple_portfolio.buy(shares_to_buy, stock_price)
+            
         elif choice == "2":
             shares_to_sell = int(input("How many shares of Apple Stock do you want to sell? "))
-
-            if shares_to_sell <= shares_hold:
-                cash += shares_to_sell * stock_price
-                shares_hold -= shares_to_sell
-                print(f"Successfully sold {shares_to_sell} shares of Apple Stock.")
-            else:
-                print("Transaction denied: You don't own that many shares!")
+            apple_portfolio.sell(shares_to_sell, stock_price)
 
         elif choice == "3":
-            print("You chose to hold your position today.")
+            apple_portfolio.hold()
+
         else:
             print("Invalid choice! You cannot operate today because you're hesitating too much!")
 
-    final_payout = shares_hold * stock_price
+        cash = apple_portfolio.cash
+        shares_hold = apple_portfolio.shares
+
+        
+
+    final_stock_price = round(float(apple_data_list[total_days - 1]["Close"]), 2)
+    final_payout = apple_portfolio.shares * final_stock_price
     cash += final_payout
 
     print()
