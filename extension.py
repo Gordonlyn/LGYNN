@@ -27,7 +27,7 @@ def main():
         for row in content:
             if row["Close"] != "":
                 apple_data_list.append(row)
-
+                
     print("-----------Print the Stock Information------------")
     for row in apple_data_list:
         print(row)
