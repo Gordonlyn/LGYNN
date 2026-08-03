@@ -12,16 +12,21 @@ holding positions using real historical data from Apple Inc. (AAPL).
 
 import yfinance as yf
 import csv
+import json
 from world_model_test import Portfolio
+from notopenai import NotOpenAI
+
+CLIENT = NotOpenAI(api_key="e0e0c8e6-de84-4f8e-b407-9d408e470f0d")
 
 
-def main():
+
+def get_stock_information():
     apple_data_list = []
 
     apple_data = yf.Ticker("AAPL")
-    apple_stock_data_1_y = apple_data.history(period = "1y")
-    apple_stock_data_1_y.to_csv("AppleStock_1_year.csv")
-    with open("AppleStock_1_year.csv", "r") as f:
+    apple_stock_data_2_y = apple_data.history(period = "2y")
+    apple_stock_data_2_y.to_csv("AppleStock_2_year.csv")
+    with open("AppleStock_2_year.csv", "r") as f:
         content = csv.DictReader(f)
 
         for row in content:
@@ -32,42 +37,112 @@ def main():
     for row in apple_data_list:
         print(row)
     print(f"The close price in {apple_data_list[0]['Date']} is {apple_data_list[0]['Close']}")
+    return apple_data_list
+
+def print_relavant_information(day, total_days, cash, shares_hold, average_cost, recent_stock_prices, five_days_average_price, twenty_days_average_price, apple_data_list):
+    print()
+    print(f"=============== DAY {day} of {total_days} ==================")
+    print(f"Today is {apple_data_list[day - 1]['Date'][:10]}")
+    print(f"Your Wallet: ${round(cash, 2)} | Shares Owned: {shares_hold} shares")
+    print(f"Your Average Cost: ${average_cost}")
+
+    print("---------------------------------------------")
+    print(f"Today's Closing Price: ${recent_stock_prices[0]} per share")
+    for i in range(1, 5):
+        print(f"Day {day - i}: ${recent_stock_prices[i]} per share")
+    print(f"5-Day Average: ${five_days_average_price} | 20-Day Average: ${twenty_days_average_price}")
+    print("---------------------------------------------")
+
+def get_gpt_decision(portfolio, current_price, recent_prices, twenty_days_avg, days_left):
+    max_buy = int(portfolio.cash / current_price)
+    chat_completion = CLIENT.chat.completions.create(
+        messages=[
+            {
+                "role": "user",
+                "content": f"You are a stock trading advisor for Apple (AAPL). "
+                           f"Today's price is ${current_price}. "
+                           f"The last 5 closing prices (newest to oldest) are: {recent_prices}. "
+                           f"The 20-day average price is ${twenty_days_avg}. "
+                           f"There are {days_left} trading days left in the simulation. "
+                           f"I currently have ${round(portfolio.cash, 2)} in cash and hold "
+                           f"{portfolio.shares} shares at an average cost of "
+                           f"${round(portfolio.average_cost(), 2)} per share. "
+                           f"Reply ONLY in json with keys: action, shares, reason. "
+                           f"action must be exactly one of: buy, sell, hold. "
+                           f"If action is buy, shares must be an integer no greater than {max_buy}. "
+                           f"If action is sell, shares must be an integer no greater than {portfolio.shares}. "
+                           f"If action is hold, shares must be 0. "
+                           f"Keep reason under 20 words.",
+            }
+        ],
+        model="gpt-3.5-turbo",
+        response_format={"type": "json_object"}
+    )
+    response_str = chat_completion.choices[0].message.content
+    return json.loads(response_str)
 
 
+def main():
 
+    apple_data_list = get_stock_information()
+
+    #initialize every things
     print("Welcome to the 1 year Apple Stock Trading Simulator!")
     print("------------------------------------------------------------------")
-
     initial_cash = float(input("Please enter your initial cash: "))
     cash = initial_cash
     shares_hold = 0
-    total_days = len(apple_data_list)
-
+    total_days = len(apple_data_list) # I just wanna start from the trading day 1 year ago.
+    start_day = total_days - 250 # This is a approximate number, I can make it more accurate if I have time.
+    
     apple_portfolio = Portfolio(initial_cash)
 
+    for day in range(start_day, total_days):
+        #Calculate recent stock prices and process the data
+        recent_stock_prices = []
+        
+        for i in range(1, 21):
+            price = round(float(apple_data_list[day - i]["Close"]), 2)
+            recent_stock_prices.append(price)
 
-    for day in range(1, total_days + 1):
-        stock_price = round(float(apple_data_list[day - 1]["Close"]), 2)
+        five_days_average_price = round(sum(recent_stock_prices[:5]) / 5, 2)
+        twenty_days_average_price = round(sum(recent_stock_prices[:20]) / 20, 2)
+        average_cost = apple_portfolio.average_cost()
+
+        print_relavant_information(day, total_days, cash, shares_hold, average_cost, recent_stock_prices, five_days_average_price, twenty_days_average_price, apple_data_list)
+
+        print("...Waiting for AI suggestion...")
+        gpt_decision = get_gpt_decision(apple_portfolio, recent_stock_prices[0], recent_stock_prices[:5], twenty_days_average_price, total_days - day)
+        action_to_choice = {"buy": "1", "sell": "2", "hold": "3"}
+        suggested_action = action_to_choice[gpt_decision["action"]]
+        suggested_amount = gpt_decision["shares"]
+        suggested_reason = gpt_decision["reason"]
+
+        print(f"[AI Suggests] {gpt_decision['action']} {suggested_amount} shares — {suggested_reason}")
         print()
-        print(f"=============== DAY {day} of {total_days} ==================")
-        print(f"Current Apple Stock Price: ${stock_price} per share")
-        print(f"Your Wallet: ${cash} | Shares Owned: {shares_hold} shares")
-        print("---------------------------------------------")
 
-        print("What would you like to do?")
+        print("What would you like to do? Press 'Enter' to accept the AI suggestion.")
         print("1: Buy Apple Stock")
         print("2: Sell Apple Stock")
         print("3: Hold (Do nothing for today)")
 
-        choice = input("Enter your choice (1/2/3): ")
+        choice = input("Enter your choice (Enter/1/2/3): ")
 
-        if choice == "1":
+        if choice == "":
+            if suggested_action == "1":
+                apple_portfolio.buy(suggested_amount, recent_stock_prices[0])
+            if suggested_action == "2":
+                apple_portfolio.sell(suggested_amount, recent_stock_prices[0])
+            if suggested_action == "3":
+                apple_portfolio.hold()
+
+        elif choice == "1":
             shares_to_buy = int(input("How many shares of Apple Stock do you want to buy? "))
-            apple_portfolio.buy(shares_to_buy, stock_price)
-            
+            apple_portfolio.buy(shares_to_buy, recent_stock_prices[0])
+
         elif choice == "2":
             shares_to_sell = int(input("How many shares of Apple Stock do you want to sell? "))
-            apple_portfolio.sell(shares_to_sell, stock_price)
+            apple_portfolio.sell(shares_to_sell, recent_stock_prices[0])
 
         elif choice == "3":
             apple_portfolio.hold()
@@ -78,16 +153,16 @@ def main():
         cash = apple_portfolio.cash
         shares_hold = apple_portfolio.shares
 
-        
 
     final_stock_price = round(float(apple_data_list[total_days - 1]["Close"]), 2)
     final_payout = apple_portfolio.shares * final_stock_price
     cash += final_payout
-
     print()
     print("================== MARKET CLOSED ==================")
     print("The 1 year market is up! Your remaining shares were calculated as cash at today's final price.")
     print(f"Your final net worth is: ${cash}")
+
+
 
     profit = cash - initial_cash
     if profit > 0:
