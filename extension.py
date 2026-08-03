@@ -16,11 +16,20 @@ import json
 from world_model_test import Portfolio
 from notopenai import NotOpenAI
 
-CLIENT = NotOpenAI(api_key="e0e0c8e6-de84-4f8e-b407-9d408e470f0d")
+CLIENT = NotOpenAI(api_key="e0e0c8e6-de84-4f8e-b407-9d408e470f0d") # Use my NotOpenAI client
 
 
 
 def get_stock_information():
+    """
+    Downloads 2 years of Apple (AAPL) historical stock data using yfinance,
+    saves it to a CSV file, and reads it back into a list of dictionaries.
+    Rows with an empty "Close" value are skipped.
+
+    Returns:
+        A list of dictionaries, where each dictionary is one trading day
+        with keys such as "Date", "Open", "High", "Low", "Close", "Volume".
+    """
     apple_data_list = []
 
     apple_data = yf.Ticker("AAPL")
@@ -40,6 +49,22 @@ def get_stock_information():
     return apple_data_list
 
 def print_relavant_information(day, total_days, cash, shares_hold, average_cost, recent_stock_prices, five_days_average_price, twenty_days_average_price, apple_data_list):
+    """
+    Prints the daily dashboard for the player: the current date, portfolio
+    status (cash, shares held, average cost), today's closing price, the
+    previous four days' closing prices, and the 5-day and 20-day averages.
+
+    Parameters:
+        day: the index of the current trading day in apple_data_list
+        total_days: the total number of trading days available
+        cash: the player's current cash balance
+        shares_hold: the number of shares the player currently owns
+        average_cost: the player's average cost per share
+        recent_stock_prices: closing prices from newest to oldest (20 days)
+        five_days_average_price: the average of the last 5 closing prices
+        twenty_days_average_price: the average of the last 20 closing prices
+        apple_data_list: the full stock data, used here to look up the date
+    """
     print()
     print(f"=============== DAY {day} of {total_days} ==================")
     print(f"Today is {apple_data_list[day - 1]['Date'][:10]}")
@@ -54,6 +79,26 @@ def print_relavant_information(day, total_days, cash, shares_hold, average_cost,
     print("---------------------------------------------")
 
 def get_gpt_decision(portfolio, current_price, recent_prices, twenty_days_avg, days_left):
+    """
+    Asks ChatGPT for a trading suggestion based on the current market data
+    and the player's portfolio. The prompt constrains the model so that the
+    suggested number of shares never exceeds what the player can afford
+    (for buying) or currently owns (for selling).
+
+    Parameters:
+        portfolio: the Portfolio object holding cash, shares, and cost basis
+        current_price: today's closing price
+        recent_prices: the last 5 closing prices, newest to oldest
+        twenty_days_avg: the 20-day average closing price
+        days_left: how many trading days remain in the simulation
+
+    Returns:
+        A dictionary with three keys:
+            "action" - one of "buy", "sell", or "hold"
+            "shares" - the suggested number of shares (0 when holding)
+            "reason" - a short explanation from the model
+    """
+
     max_buy = int(portfolio.cash / current_price)
     chat_completion = CLIENT.chat.completions.create(
         messages=[
@@ -128,6 +173,7 @@ def main():
 
         choice = input("Enter your choice (Enter/1/2/3): ")
 
+        # If the user presses Enter, accept the AI suggestion
         if choice == "":
             if suggested_action == "1":
                 apple_portfolio.buy(suggested_amount, recent_stock_prices[0])
@@ -153,7 +199,7 @@ def main():
         cash = apple_portfolio.cash
         shares_hold = apple_portfolio.shares
 
-
+    # After the trading process, calculate final portfolio value
     final_stock_price = round(float(apple_data_list[total_days - 1]["Close"]), 2)
     final_payout = apple_portfolio.shares * final_stock_price
     cash += final_payout
