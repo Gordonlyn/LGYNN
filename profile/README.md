@@ -29,20 +29,13 @@ My work sits between **hardware, code and business**: I've written STM32 firmwar
 ## How I Got Here
 
 ```mermaid
+%%{init: {'theme':'base','themeVariables':{'fontFamily':'Segoe UI, Helvetica, Arial','fontSize':'14px','cScale0':'#1f6feb','cScale1':'#1f6feb','cScale2':'#1f6feb','cScale3':'#1f6feb','cScale4':'#1f6feb','cScaleLabel0':'#ffffff','cScaleLabel1':'#ffffff','cScaleLabel2':'#ffffff','cScaleLabel3':'#ffffff','cScaleLabel4':'#ffffff'}}}%%
 timeline
-    title Journey
-    section Foundations
-        2022-23 : Fudan University — pre-university Philosophy
-        2023-24 : RF food-thawing device — Shanghai S&T innovation prizes
-    section University
-        2025 : HKU — BSc Physics + BBA(IS&A)
-             : HKU RoboMaster — embedded firmware (STM32)
-        2026 : President, HKU Business Consulting Club
-             : GAIP Insurance Innovation — 3rd place
-             : HK Web3 Ideathon — Finalist
-    section Exchange & Building
-        Summer 2026 : Stanford International Honors Program
-                    : CFO, Alpha Flow
+    2022 : Fudan · Philosophy
+    2023-24 : RF Thawing Device : Shanghai S&T Prizes
+    2025 : HKU Physics + IS&A : RoboMaster Firmware
+    2026 : UBCC President : GAIP · 3rd Place : Web3 Ideathon Finalist
+    Summer 2026 : Stanford IHP : CFO · Alpha Flow
 ```
 
 ---
@@ -95,9 +88,6 @@ timeline
 **Embedded Software Engineer — HKU RoboMaster Team** &nbsp;·&nbsp; *Hong Kong · Oct 2025 – May 2026*
 - C/C++ firmware on STM32 for the robotic dart-launcher subsystem (FreeRTOS, CAN, USART).
 - Tuned cascaded position-velocity PID loops for DJI motors; owned the subsystem from architecture to on-field debugging.
-
-**Agent — Manulife Hong Kong and Macau** &nbsp;·&nbsp; *Hong Kong · May 2026 – Present*
-- Run the full needs-analysis → proposal → application cycle for individual clients.
 
 ---
 
